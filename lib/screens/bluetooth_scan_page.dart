@@ -16,6 +16,7 @@ class _BluetoothScanPageState extends State<BluetoothScanPage> {
   void startScan() {
     BluetoothHelper.startScan();
     BluetoothHelper.listenScanResults((results) {
+      if (!mounted) return;
       setState(() {
         scanResults = results;
       });

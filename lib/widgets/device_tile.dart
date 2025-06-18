@@ -39,14 +39,10 @@ class _DeviceTileWidgetState extends State<DeviceTileWidget> {
         ),
       );
 
-      ('🧭 Redirigiendo a ConnectedPage');
-
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ConnectedPage(
-            device:device
-          ),
+          builder: (context) => ConnectedPage(device: device),
         ),
       );
     } catch (e) {

@@ -62,7 +62,10 @@ flutter:
 
   assets:
     - assets/audio/zona_segura.mp3
-
+    - assets/audio/acceso_restringido.mp3
+    - assets/audio/riesgo_electrico.mp3
+    - assets/audio/escaleras.mp3
+    - assets/audio/materiales_inflamables.mp3
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

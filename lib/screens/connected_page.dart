@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:flutter/services.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:vibration/vibration.dart';
 import 'dart:async';
+import '../utils/alert_helper.dart';
 
 class ConnectedPage extends StatefulWidget {
   final BluetoothDevice device;
@@ -15,7 +13,6 @@ class ConnectedPage extends StatefulWidget {
 }
 
 class _ConnectedPageState extends State<ConnectedPage> {
-  final AudioPlayer _audioPlayer = AudioPlayer();
   final List<String> _messageHistory = [];
   BluetoothCharacteristic? targetCharacteristic;
   StreamSubscription<List<int>>? _notificationSub;
@@ -33,17 +30,14 @@ class _ConnectedPageState extends State<ConnectedPage> {
         for (var characteristic in service.characteristics) {
           if (characteristic.uuid.toString().toLowerCase() ==
                   "beb5483e-36e1-4688-b7f5-ea07361b26a8" &&
-              (characteristic.properties.notify ||
-                  characteristic.properties.indicate)) {
+              (characteristic.properties.notify || characteristic.properties.indicate)) {
             await characteristic.setNotifyValue(true);
             _notificationSub = characteristic.value.listen((value) {
               final received = String.fromCharCodes(value).trim();
               if (received.isNotEmpty) {
                 if (!mounted) return;
                 setState(() => _messageHistory.insert(0, received));
-                if (received.toLowerCase().contains("zona segura")) {
-                  triggerAlert();
-                }
+                triggerAlert(received);
               }
             });
             setState(() => targetCharacteristic = characteristic);
@@ -51,19 +45,9 @@ class _ConnectedPageState extends State<ConnectedPage> {
           }
         }
       }
-    } catch (e) {
-      print("❌ Error al descubrir servicios: $e");
+    } catch (_) {
+      // Silenciado para evitar logs en producción
     }
-  }
-
-  Future<void> triggerAlert() async {
-    if (await Vibration.hasVibrator() == true) {
-      Vibration.vibrate(duration: 500);
-      print("✅ Vibración activada");
-    } else {
-      print("⚠️ Este dispositivo no admite vibración");
-    }
-    await _audioPlayer.play(AssetSource('audio/zona_segura.mp3'));
   }
 
   void disconnect() async {
@@ -78,22 +62,17 @@ class _ConnectedPageState extends State<ConnectedPage> {
   @override
   void dispose() {
     _notificationSub?.cancel();
-    _audioPlayer.dispose();
     widget.device.disconnect();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          'Dispositivo Conectado',
-          style: TextStyle(color: Colors.white),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Dispositivo Conectado'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -107,11 +86,11 @@ class _ConnectedPageState extends State<ConnectedPage> {
           const SizedBox(height: 32),
           const Icon(Icons.bluetooth_connected, size: 100, color: Colors.cyanAccent),
           const SizedBox(height: 16),
-          const Text('🔗 Conectado a:', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          Text('🔗 Conectado a:', style: textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
             widget.device.platformName.isNotEmpty ? widget.device.platformName : 'Dispositivo',
-            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
@@ -119,33 +98,29 @@ class _ConnectedPageState extends State<ConnectedPage> {
             icon: const Icon(Icons.bluetooth_disabled),
             label: const Text("Desconectar"),
             style: ElevatedButton.styleFrom(
-              foregroundColor: Colors.white,
               backgroundColor: Colors.redAccent,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
           ),
           const SizedBox(height: 16),
-          const Divider(color: Colors.white54),
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text('📥 Parámetros recibidos:', style: TextStyle(color: Colors.white70)),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text('📥 Parámetros recibidos:', style: textTheme.titleSmall),
           ),
           Expanded(
             child: ListView.builder(
-              reverse: false,
               itemCount: _messageHistory.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4),
-                  child: Text(
-                    _messageHistory[index],
-                    style: const TextStyle(color: Colors.greenAccent, fontSize: 16),
-                  ),
-                );
-              },
+              itemBuilder: (context, index) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4),
+                child: Text(
+                  _messageHistory[index],
+                  style: textTheme.bodyLarge?.copyWith(color: Colors.greenAccent),
+                ),
+              ),
             ),
-          )
+          ),
         ],
       ),
     );
